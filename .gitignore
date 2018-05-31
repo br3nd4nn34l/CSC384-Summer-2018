@@ -1,0 +1,5 @@
+# Ignore compiled python, useless
+.pyc
+
+# Ignore Jetbrains IDE configs
+.idea/
