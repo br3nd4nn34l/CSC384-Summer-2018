@@ -107,10 +107,63 @@ def test_q2():
             "fn" : "bfs"
         })
 
+def test_q3():
+
+    run_pacman(
+        maze_name="mediumMaze",
+        agent_name="SearchAgent",
+        kwargs_dict={
+            "fn" : "ucs"
+        }
+    )
+
+    run_pacman(
+        maze_name="mediumDottedMaze",
+        agent_name="StayEastSearchAgent"
+    )
+
+    run_pacman(
+        maze_name="mediumScaryMaze",
+        agent_name="StayWestSearchAgent"
+    )
+
+def test_q4():
+    run_pacman(
+        maze_name="bigMaze",
+        agent_name="SearchAgent",
+        kwargs_dict={
+            "fn" : "astar",
+            "heuristic" : "manhattanHeuristic"
+        }
+    )
+
+def test_q5():
+    for map in ["tinyCorners", "mediumCorners"]:
+        run_pacman(
+            maze_name=map,
+            agent_name="SearchAgent",
+            kwargs_dict={
+                "fn" : "bfs",
+                "prob" : "CornersProblem"
+            }
+        )
+
+def test_q6():
+    run_pacman(
+        maze_name="mediumCorners",
+        agent_name="AStarCornersAgent"
+    )
+
+def test_q7():
+
+    for map in ["testSearch", "tinySearch", "trickySearch"]:
+        run_pacman(
+            maze_name=map,
+            agent_name="AStarFoodSearchAgent"
+        )
 
 #endregion
 
 if __name__ == '__main__':
-    test_pacman_integrity()
-    test_q2()
+    test_q7()
 
