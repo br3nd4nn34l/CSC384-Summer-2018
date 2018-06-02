@@ -127,8 +127,6 @@ ucs = uniformCostSearch
 
 # region Search Algorithm Implementation
 
-# TODO DOCSTRINGS AND REFACTOR FOR FASTER COST COMPUTATION
-
 class SearchPath:
     def __init__(self, parent, edge, state):
         self.parent = parent
@@ -393,7 +391,6 @@ class BfsProcedure(CycleCheckedProcedure):
 # Wrapper for SearchPaths
 # Instances are considered equal if they have the same state -
 # this is so PriorityQueue can be updated appropriately
-# TODO REFACTOR CODE TO CACHE COSTS
 class StateEquatablePath(object):
     def __init__(self, search_path):
         self.path = search_path
