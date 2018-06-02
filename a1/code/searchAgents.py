@@ -311,6 +311,7 @@ class PacManMapDistanceProblem(search.SearchPath):
 
         return successors
 
+
 class PacManMap(object):
     """
     Utilizes PacManMapDistanceProblem and caching to
@@ -319,7 +320,7 @@ class PacManMap(object):
 
     def __init__(self, walls):
         self.walls = walls
-        self.distance_cache = {}
+        self.dist_cache = {}
 
     def _compute_moves(self, pt1, pt2):
         """
@@ -343,7 +344,8 @@ class PacManMap(object):
 
     def map_distance(self, pt1, pt2):
         """
-        Returns the distance needed to travel between pt1 and pt2 on this map.
+        Returns the number of moves needed to travel between pt1 and pt2.
+
         Define notation: A~>B : shortest path from A to B
 
         For a graph with uniform edge costs,
@@ -354,9 +356,6 @@ class PacManMap(object):
         we can cache each sub-path of the obtained path
         for faster re-computation
         """
-
-        # TODO FAILS FOR PATHS THAT GO OVER OTHER FOOD
-
         # Unpack points
         x1, y1 = pt1
         x2, y2 = pt2
@@ -374,22 +373,28 @@ class PacManMap(object):
             return 1
 
         # Reversed call may already be in cache
-        if (pt2, pt1) in self.distance_cache:
-            return self.distance_cache[(pt2, pt1)]
+        if (pt2, pt1) in self.dist_cache:
+            return self.dist_cache[(pt2, pt1)]
 
         # Fill the cache
-        if not (pt1, pt2) in self.distance_cache:
+        if not (pt1, pt2) in self.dist_cache:
 
             # Compute the coordinates of the path between pt1 and pt2
             path_coords = self._compute_path_coords(pt1, pt2)
 
-            # Distance is simply the difference in indices
-            for i in range(len(path_coords)):
-                for j in range(i, len(path_coords)):
-                    if (i != j):
-                        self.distance_cache[(path_coords[i], path_coords[j])] = j - i
+            # Distance is infinite
+            if path_coords == []:
+                self.dist_cache[(pt1, pt2)] = float('inf')
 
-        return self.distance_cache[(pt1, pt2)]
+            # Distances of each sub-path are simply differences in indices
+            for i in range(len(path_coords)):
+                for j in range(i + 1, len(path_coords)):
+                    key = (path_coords[i], path_coords[j])
+                    self.dist_cache[key] = j - i
+
+        # Get the cached value, it has to be computed at some point
+        return self.dist_cache[(pt1, pt2)]
+
 
 class CornersProblem(search.SearchProblem):
     """
@@ -560,6 +565,87 @@ class CornersProblem(search.SearchProblem):
         """
         return (pacman_x, pacman_y, tuple(corners_done))
 
+
+class DisjointSet(object):
+    """
+    Disjoint set data-structure to be used in Kruskal's algorithm
+    """
+
+    def __init__(self, members):
+        self.rep_to_members = {}
+        self.member_to_rep = {}
+
+        for member in members:
+            self.add_set(member)
+
+    def add_set(self, member):
+        self.rep_to_members[member] = {member}
+        self.member_to_rep[member] = member
+
+    def find_rep(self, member):
+        return self.member_to_rep[member]
+
+    def merge_sets(self, member1, member2):
+        mem1_rep = self.find_rep(member1)
+        mem2_rep = self.find_rep(member2)
+
+        # Move all members related to member2 to member1's set
+        for mem in self.rep_to_members.pop(mem2_rep):
+            self.member_to_rep[mem] = mem1_rep
+            self.rep_to_members[mem1_rep].add(mem)
+
+
+def kruskal_edges(nodes, distance):
+    """
+    Uses Kruskal's algorithm to derive the MST (in edge set form) that spans nodes.
+    distance(n1, n2) -> weight of undirected edge n1<->n2
+    """
+
+    # Make a disjoint set featuring all the nodes
+    disjoint_set = DisjointSet(nodes)
+
+    # Edges ordered by distances
+    ordered_edges = sorted(
+        (
+            (nodes[i], nodes[j])
+            for i in range(len(nodes))
+            for j in range(i + 1, len(nodes))
+        ),
+        key=lambda pair: distance(*pair)
+    )
+
+    # Edges to return
+    ret = set()
+    for node1, node2 in ordered_edges:
+        if disjoint_set.find_rep(node1) != disjoint_set.find_rep(node2):
+            ret.add((node1, node2))
+            disjoint_set.merge_sets(node1, node2)
+
+    return ret
+
+
+def kruskal_heuristic(pacman_pos, food_coords, distance):
+    """
+    Heuristic: total length of the minimum-spanning tree of graph G, where
+        Nodes = pacman_pos + (food coordinates)
+        Edges = distance between coordinate pairs
+
+    This is a lower bound because the total length of an MST is a lower bound
+    on a TSP tour (which PacMan must complete to eat all the food).
+
+    This heuristic is no greater than a TSP tour because a
+    TSP tour must be at least as long as the total length of an MST.
+    If it was shorter, the MST would be the TSP tour.
+
+    Thus, this heuristic is admissible and consistent.
+    """
+    return sum(
+        distance(p1, p2)
+        for p1, p2 in
+        kruskal_edges([pacman_pos] + list(food_coords), distance)
+    )
+
+
 def cornersHeuristic(state, problem):
     """
     A heuristic for the CornersProblem that you defined.
@@ -577,57 +663,24 @@ def cornersHeuristic(state, problem):
     walls = problem.walls  # These are the walls of the maze, as a Grid (game.py)
     "*** YOUR CODE HERE ***"
 
-    # Defining distance function for modularity
-    def distance(pt1, pt2):
-        return problem.map.map_distance(pt1, pt2)
-
-    # Let heuristic = L + K, where:
-    #    (A, B) = the pair of food furthest from each other in uneaten
-    #    L = distance between (A, B), or 0 if there is less than 2 food
-    #    K = minimum distance between pacman_pos and (A or B)
-
-    # In order to finish the game, PacMan must:
-    #   1) travel to the closer food
-    #   2) travel to the further food
-
-    # This holds under the assumption that no paths between any pair of food
-    # cross a food outside that pair.
-    # This property is guaranteed for the corners problem.
-
     # Need to return 0 on a goal state
     if problem.isGoalState(state):
         return 0
 
     # Unpack state
     pacman_x, pacman_y, corners_done = state
-    pacman_pos = (pacman_x, pacman_y)
 
-    # Uneaten coordinates
-    uneaten = [
-        corner
-        for (corner, indicator) in zip(corners, corners_done)
-        if not indicator
-    ]
-
-    # In this case L = 0, so just return distance to last uneaten
-    if len(uneaten) == 1:
-        return distance(pacman_pos, uneaten[0])
-
-    A, B = min(
-        (
-            (uneaten[i], uneaten[j])
-            for i in range(len(uneaten))
-            for j in range(i, len(uneaten))
-            if i != j
+    # Use the Kruskal heuristic
+    return kruskal_heuristic(
+        pacman_pos=(pacman_x, pacman_y),
+        food_coords=(
+            corner for (corner, indicator)
+            in zip(corners, corners_done)
+            if not indicator
         ),
-        key=lambda pair: distance(*pair)
+        distance=lambda p1, p2: problem.map.map_distance(p1, p2)
     )
-    L = distance(A, B)
 
-    # Determine K
-    K = max(distance(A, pacman_pos), distance(B, pacman_pos))
-
-    return L + K
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
@@ -691,6 +744,7 @@ class FoodSearchProblem:
             cost += 1
         return cost
 
+
 class AStarFoodSearchAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
 
@@ -728,24 +782,16 @@ def foodHeuristic(state, problem):
     position, foodGrid = state
     "*** YOUR CODE HERE ***"
 
-    # Heuristic: min(distance from pacman to a food) + number of food left
-    # This heuristic is a lower bound as:
-    #   1) Pacman must eat the closest food
-    #   2) Pacman must move at least once to eat each leftover food
-
     # Need to return 0 on a goal state
     if problem.isGoalState(state):
         return 0
 
-    # Number of fruit left over for PacMan to eat
-    # (we're going to eat at least one by going down this path at some point)
-    food_left = len(foodGrid.asList()) - 1
-
-    closest_food_dist = min((
-        problem.map.map_distance(position, food) for food in foodGrid.asList()
-    ))
-
-    return food_left + closest_food_dist
+    # Use the Kruskal heuristic
+    return kruskal_heuristic(
+        pacman_pos=position,
+        food_coords=foodGrid.asList(),
+        distance=lambda p1, p2: problem.map.map_distance(p1, p2)
+    )
 
 
 class ClosestDotSearchAgent(SearchAgent):
