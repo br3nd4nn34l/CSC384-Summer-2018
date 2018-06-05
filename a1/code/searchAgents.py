@@ -276,7 +276,7 @@ def euclideanHeuristic(position, problem, info={}):
 # This portion is incomplete.  Time to write code!  #
 #####################################################
 
-class PacManMapDistanceProblem(search.SearchPath):
+class PacManMapDistanceProblem(search.SearchProblem):
     """
     Light-weight version of the PositionSearchProblem.
     States are simply coordinates on the grid / map.
