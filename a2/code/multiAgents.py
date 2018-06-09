@@ -812,10 +812,17 @@ class ExpectimaxAgent(AssistedMultiAgent):
 
 def betterEvaluationFunction(currentGameState):
     """
-      Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
-      evaluation function (question 5).
+    Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
+    evaluation function (question 5).
 
-      DESCRIPTION: <write something here so we know what you did>
+    DESCRIPTION:
+    I am making PacMan play safely; want to:
+        Minimize distance to nearest food
+        Maximize distance to fearless ghosts (within a certain range)
+        Maximize score
+    I do not take into account power pellets or edible ghosts as
+    the current solution seems to be able to consistently
+    eke out scores between 500 and 1000 and always win.
     """
     "*** YOUR CODE HERE ***"
 
