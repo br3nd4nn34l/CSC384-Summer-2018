@@ -217,7 +217,7 @@ def evaluate_q1(num_games=100):
 
 
 def evaluate_q2(num_games=100):
-    result = run_pacman(
+    print(run_pacman(
         agent_name="MinimaxAgent",
         maze_name="minimaxClassic",
         no_graphic=True,
@@ -225,12 +225,21 @@ def evaluate_q2(num_games=100):
         kwargs_dict={
             "depth": 4
         }
-    )
+    ))
 
-    print(result)
 
+def evaluate_q5(num_games=100):
+    print(run_pacman(
+        agent_name="ExpectimaxAgent",
+        maze_name="smallClassic",
+        num_games=num_games,
+        no_graphic=True,
+        kwargs_dict={
+            "evalFn": "better"
+        }
+    ))
 
 # endregion
 
 if __name__ == '__main__':
-    test_q5()
+    evaluate_q5()
