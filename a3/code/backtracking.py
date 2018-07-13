@@ -2,6 +2,7 @@ from csp import Constraint, Variable, CSP
 import random
 import util
 
+
 class UnassignedVars:
     '''class for holding the unassigned variables of a CSP. We can extract
        from, re-initialize it, and return variables to it.  Object is
@@ -15,14 +16,16 @@ class UnassignedVars:
        'mrv'    == select the variable with minimum values in its current domain
                    break ties by the ordering in the CSP variables.
     '''
+
     def __init__(self, select_criteria, csp):
         if select_criteria not in ['random', 'fixed', 'mrv']:
-            print "Error UnassignedVars given an illegal selection criteria {}. Must be one of 'random', 'stack', 'queue', or 'mrv'".format(select_criteria)
+            print "Error UnassignedVars given an illegal selection criteria {}. Must be one of 'random', 'stack', 'queue', or 'mrv'".format(
+                select_criteria)
         self.unassigned = list(csp.variables())
         self.csp = csp
         self._select = select_criteria
         if select_criteria == 'fixed':
-            #reverse unassigned list so that we can add and extract from the back
+            # reverse unassigned list so that we can add and extract from the back
             self.unassigned.reverse()
 
     def extract(self):
@@ -30,7 +33,7 @@ class UnassignedVars:
             print "Warning, extracting from empty unassigned list"
             return None
         if self._select == 'random':
-            i = random.randint(0,len(self.unassigned)-1)
+            i = random.randint(0, len(self.unassigned) - 1)
             nxtvar = self.unassigned[i]
             self.unassigned[i] = self.unassigned[-1]
             self.unassigned.pop()
@@ -51,6 +54,7 @@ class UnassignedVars:
         else:
             self.unassigned.append(var)
 
+
 def bt_search(algo, csp, variableHeuristic, allSolutions, trace):
     '''Main interface routine for calling different forms of backtracking search
        algorithm is one of ['BT', 'FC', 'GAC']
@@ -66,7 +70,7 @@ def bt_search(algo, csp, variableHeuristic, allSolutions, trace):
     varHeuristics = ['random', 'fixed', 'mrv']
     algorithms = ['BT', 'FC', 'GAC']
 
-    #statistics
+    # statistics
     bt_search.nodesExplored = 0
 
     if variableHeuristic not in varHeuristics:
@@ -76,23 +80,24 @@ def bt_search(algo, csp, variableHeuristic, allSolutions, trace):
         print "Error. Unknown algorithm heursitics {}. Must be one of {}.".format(
             algo, algorithms)
 
-    uv = UnassignedVars(variableHeuristic,csp)
+    uv = UnassignedVars(variableHeuristic, csp)
     Variable.clearUndoDict()
     for v in csp.variables():
         v.reset()
     solutions = []
     if algo == 'BT':
-         solutions = BT(uv, csp, allSolutions, trace)
+        solutions = BT(uv, csp, allSolutions, trace)
     elif algo == 'FC':
         for cnstr in csp.constraints():
             if cnstr.arity() == 1:
-                FCCheck(c, None, None)  #FC with unary constraints at the root
+                FCCheck(c, None, None)  # FC with unary constraints at the root
         solutions = FC(uv, csp, allSolutions, trace)
     elif algo == 'GAC':
-        GacEnforce(csp.constraints(), csp, None, None) #GAC at the root
+        GacEnforce(csp.constraints(), csp, None, None)  # GAC at the root
         solutions = GAC(uv, csp, allSolutions, trace)
 
     return solutions, bt_search.nodesExplored
+
 
 def BT(unAssignedVars, csp, allSolutions, trace):
     '''Backtracking Search. unAssignedVars is the current set of
@@ -115,9 +120,9 @@ def BT(unAssignedVars, csp, allSolutions, trace):
         soln = []
         for v in csp.variables():
             soln.append((v, v.getValue()))
-        return [soln]  #each call returns a list of solutions found
+        return [soln]  # each call returns a list of solutions found
     bt_search.nodesExplored += 1
-    solns = []         #so far we have no solutions recursive calls
+    solns = []  # so far we have no solutions recursive calls
     nxtvar = unAssignedVars.extract()
     if trace: print "==>Trying {}".format(nxtvar.name())
     for val in nxtvar.domain():
@@ -135,30 +140,33 @@ def BT(unAssignedVars, csp, allSolutions, trace):
             if new_solns:
                 solns.extend(new_solns)
             if len(solns) > 0 and not allSolutions:
-                break #don't bother with other values of nxtvar
-                      #as we found a soln.
+                break  # don't bother with other values of nxtvar
+                # as we found a soln.
     nxtvar.unAssign()
     unAssignedVars.insert(nxtvar)
     return solns
 
+
 def FCCheck(cnstr, reasonVar, reasonVal):
     if cnstr.numUnassigned() != 1:
-        print "Error FCCheck called on constraint {} with {} neq 1 unassigned vars".format(cnstr.name(), cnstr.numUnassignedVars)
+        print "Error FCCheck called on constraint {} with {} neq 1 unassigned vars".format(cnstr.name(),
+                                                                                           cnstr.numUnassignedVars)
     var = cnstr.unAssignedVars()[0]
     for val in var.curDomain():
         var.setValue(val)
         if not cnstr.check():
             var.pruneValue(val, reasonVar, reasonVal)
-        var.unAssign()  #NOTE WE MUST UNDO TRIAL ASSIGNMENT
+        var.unAssign()  # NOTE WE MUST UNDO TRIAL ASSIGNMENT
     if var.curDomainSize() == 0:
         return "DWO"
     return "OK"
+
 
 def FC(unAssignedVars, csp, allSolutions, trace):
     '''Forward checking search.
        unAssignedVars is the current set of
        unassigned variables.  csp is the csp
-       problem, allSolutions is True if you want all solutionsl trace
+       problem, allSolutions is True if you want all solutions trace
        if you want some tracing of variable assignments tried and
        constraints failed.
 
@@ -170,22 +178,114 @@ def FC(unAssignedVars, csp, allSolutions, trace):
        must make sure that we restore all pruned values before
        returning.
     '''
-    #your implementation for Question 2 goes in this function body.
-    #you must not change the function parameters.
-    #Implementing handling of the trace parameter is optional
-    #but it can be useful for debugging
 
-    util.raiseNotDefined()
+    # your implementation for Question 2 goes in this function body.
+    # you must not change the function parameters.
+    # Implementing handling of the trace parameter is optional
+    # but it can be useful for debugging
+
+    # No more unassigned variables, extract the solution
+    if unAssignedVars.empty():
+        solution = tuple((v, v.getValue()) for v in csp.variables())
+        return [solution]
+
+    solutions = []
+
+    # Get the next unassigned variable
+    variable = unAssignedVars.extract()
+    for value in variable.curDomain():
+
+        # Whether or not we can stop the loop
+        leave_early = False
+
+        # If the value does not wipe out a domain, it's worth investigating
+        if not fc_domain_wipeout(csp, variable, value):
+            # Set the variable value so recursion isn't infinite
+            variable.setValue(value)
+            solutions += list(FC(unAssignedVars, csp, allSolutions, trace))
+
+            # Determining if we can leave early
+            allowed_to_leave = not allSolutions
+            have_some_sols = len(solutions) > 0
+            leave_early = allowed_to_leave and have_some_sols
+
+        # Regardless of what happened to the variable, restore pruned values
+        variable.restoreValues(variable, value)
+
+        # Avoid going through more values
+        if leave_early: break
+
+    # Un-Assign the variable and put it back into the argument
+    variable.unAssign()
+    unAssignedVars.insert(variable)
+
+    return solutions
+
+
+# Helper function to check if a constraint
+# causes DWO for a variable (domain wipeout)
+def fc_domain_wipeout(csp, variable, value):
+    # Temporarily set the value of the variable
+    variable.setValue(value)
+
+    # Stop at the first constraint that wipes out the domain
+    ret = False
+    for constraint in csp.constraintsOf(variable):
+        if constraint.numUnassigned() == 1:
+            if FCCheck(constraint, variable, value) == "DWO":
+                ret = True
+                break
+
+    # Undo the variable value setting
+    variable.unAssign()
+
+    return ret
+
 
 def GacEnforce(constraints, csp, reasonVar, reasonVal):
     '''Establish GAC on constraints by pruning values
        from the current domains of the variables.
        Return "OK" if completed "DWO" if found
        a domain wipe out.'''
-    #your implementation for Question 3 goes in this function body
-    #you must not change the function parameters
-    #ensure that you return one of "OK" or "DWO"
-    util.raiseNotDefined()
+    # your implementation for Question 3 goes in this function body
+    # you must not change the function parameters
+    # ensure that you return one of "OK" or "DWO"
+
+    # Stop when we have no more constraints
+    while len(constraints) > 0:
+
+        # Pop a constraint off of the given list
+        con = constraints.pop()
+
+        # Go through each variable mentioned in the constraint
+        for variable in con.scope():
+
+            # Go through each of the variable's possible values
+            for value in variable.curDomain():
+
+                # We only care about values that cause the constraint to fail
+                if not con.hasSupport(variable, value):
+
+                    # Get rid of the value from the domain
+                    variable.pruneValue(value, reasonVar, reasonVal)
+
+                    # The variable's domain was just wiped out, abort
+                    if variable.curDomainSize() == 0:
+                        return "DWO"
+
+                    # Add sibling constraints to the queue
+                    for recheck in csp.constraintsOf(variable):
+
+                        # Don't add the same constraint again
+                        if recheck == con: continue
+
+                        # Don't add a constraint that is going to be checked in the future
+                        if recheck in constraints: continue
+
+                        constraints += [recheck]
+
+    return "OK"
+
 
 def GAC(unAssignedVars, csp, allSolutions, trace):
     '''GAC search.
@@ -203,9 +303,53 @@ def GAC(unAssignedVars, csp, allSolutions, trace):
        must make sure that we restore all pruned values before
        returning.
     '''
-    #your implementation for Question 3 goes in this function body
-    #You must not change the function parameters.
-    #implementing support for "trace" is optional, but it might
-    #help you in debugging
+    # your implementation for Question 3 goes in this function body
+    # You must not change the function parameters.
+    # implementing support for "trace" is optional, but it might
+    # help you in debugging
 
-    util.raiseNotDefined()
+    # No more unassigned variables, extract the solution
+    if unAssignedVars.empty():
+        solution = [(v, v.getValue()) for v in csp.variables()]
+        return [solution]
+
+    solutions = []
+
+    # Get the next unassigned variable
+    variable = unAssignedVars.extract()
+    for value in variable.curDomain():
+
+        # Whether or not we can stop the loop
+        leave_early = False
+
+        # If the value does not wipe out a domain, it's worth investigating
+        if not gac_domain_wipeout(csp, variable, value):
+            # Set the variable value so recursion isn't infinite
+            variable.setValue(value)
+            solutions += list(GAC(unAssignedVars, csp, allSolutions, trace))
+
+            # Determining if we can leave early
+            allowed_to_leave = not allSolutions
+            have_some_sols = len(solutions) > 0
+            leave_early = allowed_to_leave and have_some_sols
+
+        # Regardless of what happened to the variable, restore pruned values
+        variable.restoreValues(variable, value)
+
+        # Avoid going through more values
+        if leave_early: break
+
+    # Un-Assign the variable and put it back into the argument
+    variable.unAssign()
+    unAssignedVars.insert(variable)
+
+    return solutions
+
+
+def gac_domain_wipeout(csp, variable, value):
+    # Temporarily assign variable to value in order to do the enforcement
+    variable.setValue(value)
+    ret = GacEnforce(csp.constraintsOf(variable), csp, variable, value) == "DWO"
+    variable.unAssign()
+
+    return ret

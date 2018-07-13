@@ -53,6 +53,18 @@ def solve_nQueens(n, algo, allsolns, tableCnstr=False, variableHeuristic='fixed'
                print "{} = {}, ".format(var.name(),val),
            print ""
 
+# Helper class for generating Soduku AllDiff constraints with unique names
+class SodukuAllDiff(object):
+
+    cur_id = 0
+
+    def __new__(cls, scope):
+        name = "Soduku_{}".format(cls.cur_id)
+        ret = AllDiffConstraint(name, scope)
+        cls.cur_id += 1
+        return ret
+
+
 def sudokuCSP(initial_sudoku_board, model='neq'):
     '''The input board is specified as a list of 9 lists. Each of the
        9 lists represents a row of the board. If a 0 is in the list it
@@ -130,14 +142,14 @@ def sudokuCSP(initial_sudoku_board, model='neq'):
         if model == 'neq':
             constraint_list.extend(post_all_pairs(row))
         elif model == 'alldiff':
-            util.raiseNotDefined()
+            constraint_list += [SodukuAllDiff(row)]
 
-    for colj in range(len(var_array[0])):
-        scope = map(lambda row: row[colj], var_array)
+    for col in range(len(var_array[0])):
+        scope = map(lambda row: row[col], var_array)
         if model == 'neq':
             constraint_list.extend(post_all_pairs(scope))
         elif model == 'alldiff':
-            util.raiseNotDefined()
+            constraint_list += [SodukuAllDiff(scope)]
 
     for i in [0, 3, 6]:
         for j in [0, 3, 6]:
@@ -149,7 +161,7 @@ def sudokuCSP(initial_sudoku_board, model='neq'):
             if model == 'neq':
                 constraint_list.extend(post_all_pairs(scope))
             elif model == 'alldiff':
-                util.raiseNotDefined()
+                constraint_list += [SodukuAllDiff(scope)]
 
     vars = [var for row in var_array for var in row]
     return CSP("Sudoku", vars, constraint_list)

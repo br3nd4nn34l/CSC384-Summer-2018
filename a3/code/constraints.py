@@ -1,6 +1,7 @@
 from csp import Constraint, Variable
 import util
 
+
 class TableConstraint(Constraint):
     '''General type of constraint that can be use to implement any type of
        constraint. But might require a lot of space to do so.
@@ -33,7 +34,7 @@ class TableConstraint(Constraint):
           satisfy A+B=C.
         '''
 
-        Constraint.__init__(self,name, scope)
+        Constraint.__init__(self, name, scope)
         self._name = "TableCnstr_" + name
         self.satAssignments = satisfyingAssignments
 
@@ -47,33 +48,34 @@ class TableConstraint(Constraint):
                 return True
         return assignments in self.satAssignments
 
-    def hasSupport(self, var,val):
+    def hasSupport(self, var, val):
         '''check if var=val has an extension to an assignment of all variables in
            constraint's scope that satisfies the constraint. Important only to
            examine values in the variable's current domain as possible extensions'''
         if var not in self.scope():
-            return True   #var=val has support on any constraint it does not participate in
+            return True  # var=val has support on any constraint it does not participate in
         vindex = self.scope().index(var)
         found = False
         for assignment in self.satAssignments:
             if assignment[vindex] != val:
-                continue   #this assignment can't work it doesn't make var=val
-            found = True   #Otherwise it has potential. Assume found until shown otherwise
+                continue  # this assignment can't work it doesn't make var=val
+            found = True  # Otherwise it has potential. Assume found until shown otherwise
             for i, v in enumerate(self.scope()):
                 if i != vindex and not v.inCurDomain(assignment[i]):
-                    found = False  #Bummer...this assignment didn't work it assigns
-                    break          #a value to v that is not in v's curDomain
-                                   #note we skip checking if val in in var's curDomain
-            if found:     #if found still true the assigment worked. We can stop
+                    found = False  # Bummer...this assignment didn't work it assigns
+                    break  # a value to v that is not in v's curDomain
+                    # note we skip checking if val in in var's curDomain
+            if found:  # if found still true the assigment worked. We can stop
                 break
-        return found     #either way found has the right truth value
+        return found  # either way found has the right truth value
 
 
 class QueensConstraint(Constraint):
     '''Queens constraint between queen in row i and row j'''
+
     def __init__(self, name, qi, qj, i, j):
         scope = [qi, qj]
-        Constraint.__init__(self,name, scope)
+        Constraint.__init__(self, name, scope)
         self._name = "QueenCnstr_" + name
         self.i = i
         self.j = j
@@ -83,18 +85,19 @@ class QueensConstraint(Constraint):
         qj = self.scope()[1]
         if not qi.isAssigned() or not qj.isAssigned():
             return True
-        return self.queensCheck(qi.getValue(),qj.getValue())
+        return self.queensCheck(qi.getValue(), qj.getValue())
 
     def queensCheck(self, vali, valj):
         diag = abs(vali - valj) == abs(self.i - self.j)
         return not diag and vali != valj
+
     def hasSupport(self, var, val):
         '''check if var=val has an extension to an assignment of the
            other variable in the constraint that satisfies the constraint'''
-        #hasSupport for this constraint is easier as we only have one
-        #other variable in the constraint.
+        # hasSupport for this constraint is easier as we only have one
+        # other variable in the constraint.
         if var not in self.scope():
-            return True   #var=val has support on any constraint it does not participate in
+            return True  # var=val has support on any constraint it does not participate in
         otherVar = self.scope()[0]
         if otherVar == var:
             otherVar = self.scope()[1]
@@ -103,8 +106,8 @@ class QueensConstraint(Constraint):
                 return True
         return False
 
-class QueensTableConstraint(TableConstraint):
 
+class QueensTableConstraint(TableConstraint):
     '''Queens constraint between queen in row i and row j, but
        using a table constraint instead. That is, you
        have to create and add the satisfying tuples.
@@ -116,19 +119,57 @@ class QueensTableConstraint(TableConstraint):
        Then we get hasSupport and check automatically from
        TableConstraint
     '''
-    #your implementation for Question 1 goes
-    #inside of this class body. You must not change
-    #the existing function signatures.
+
+    # your implementation for Question 1 goes
+    # inside of this class body. You must not change
+    # the existing function signatures.
     def __init__(self, name, qi, qj, i, j):
         self._name = "Queen_" + name
-        util.raiseNotDefined()
+
+        # Calling helper method to determine satisfying assignments
+        allowed_positions = QueensTableConstraint \
+            .allowed_positions(qi.domain(), qj.domain(), i, j)
+        scope = [qi, qj]
+
+        # Call super class initializer
+        TableConstraint.__init__(self, self._name, scope, allowed_positions)
+
+    @classmethod
+    def same_diagonal(cls, row_diff, col_diff):
+        return abs(row_diff) == abs(col_diff)
+
+    @classmethod
+    def allowed_positions(cls, qi_columns, qj_columns, qi_row, qj_row):
+
+        # Abort, queens can attack on same row
+        if qi_row == qj_row: return []
+
+        # These never change, so store the difference
+        row_diff = qi_row - qj_row
+
+        ret = []
+        for qi_col in qi_columns:
+            for qj_col in qj_columns:
+
+                # Queens can attack on same column, skip
+                if qi_col == qj_col: continue
+
+                # Queens can attack on same diagonal, skip
+                if cls.same_diagonal(row_diff, qi_col - qj_col): continue
+
+                # Queens are now in different rows, columns and diagonals
+                ret += [[qi_col, qj_col]]
+
+        return ret
+
 
 class NeqConstraint(Constraint):
     '''Neq constraint between two variables'''
+
     def __init__(self, name, scope):
         if len(scope) != 2:
             print "Error Neq Constraints are only between two variables"
-        Constraint.__init__(self,name, scope)
+        Constraint.__init__(self, name, scope)
         self._name = "NeqCnstr_" + name
 
     def check(self):
@@ -141,10 +182,10 @@ class NeqConstraint(Constraint):
     def hasSupport(self, var, val):
         '''check if var=val has an extension to an assignment of the
            other variable in the constraint that satisfies the constraint'''
-        #hasSupport for this constraint is easier as we only have one
-        #other variable in the constraint.
+        # hasSupport for this constraint is easier as we only have one
+        # other variable in the constraint.
         if var not in self.scope():
-            return True   #var=val has support on any constraint it does not participate in
+            return True  # var=val has support on any constraint it does not participate in
         otherVar = self.scope()[0]
         if otherVar == var:
             otherVar = self.scope()[1]
@@ -153,10 +194,12 @@ class NeqConstraint(Constraint):
                 return True
         return False
 
+
 class AllDiffConstraint(Constraint):
     '''All diff constraint between a set of variables'''
+
     def __init__(self, name, scope):
-        Constraint.__init__(self,name, scope)
+        Constraint.__init__(self, name, scope)
         self._name = "AllDiff_" + name
 
     def check(self):
@@ -172,26 +215,27 @@ class AllDiffConstraint(Constraint):
         '''check if var=val has an extension to an assignment of the
            other variable in the constraint that satisfies the constraint'''
         if var not in self.scope():
-            return True   #var=val has support on any constraint it does not participate in
+            return True  # var=val has support on any constraint it does not participate in
 
-        #since the contraint has many variables use the helper function 'findvals'
-        #for that we need two test functions
-        #1. for testing complete assignments to the constraint's scope
+        # since the contraint has many variables use the helper function 'findvals'
+        # for that we need two test functions
+        # 1. for testing complete assignments to the constraint's scope
         #   return True if and only if the complete assignment satisfies the constraint
-        #2. for testing partial assignments to see if they could possibly work.
+        # 2. for testing partial assignments to see if they could possibly work.
         #   return False if the partial assignment cannot be extended to a satisfying complete
         #   assignment
         #
-        #Function #2 is only needed for efficiency (sometimes don't have one)
+        # Function #2 is only needed for efficiency (sometimes don't have one)
         #  if it isn't supplied findvals will use a function that never returns False
         #
-        #For alldiff, we do have both functions! And they are the same!
-        #We just check if the assignments are all to different values. If not return False
+        # For alldiff, we do have both functions! And they are the same!
+        # We just check if the assignments are all to different values. If not return False
         def valsNotEqual(l):
             '''tests a list of assignments which are pairs (var,val)
                to see if they can satisfy the all diff'''
             vals = [val for (var, val) in l]
             return len(set(vals)) == len(vals)
+
         varsToAssign = self.scope()
         varsToAssign.remove(var)
         x = findvals(varsToAssign, [(var, val)], valsNotEqual, valsNotEqual)
@@ -235,10 +279,9 @@ def findvals(remainingVars, assignment, finalTestfn, partialTestfn=lambda x: Tru
         if partialTestfn(assignment):
             if findvals(remainingVars, assignment, finalTestfn, partialTestfn):
                 return True
-        assignment.pop()   #(var,val) didn't work since we didn't do the return
+        assignment.pop()  # (var,val) didn't work since we didn't do the return
     remainingVars.append(var)
     return False
-
 
 class NValuesConstraint(Constraint):
     '''NValues constraint over a set of variables.
@@ -252,19 +295,27 @@ class NValuesConstraint(Constraint):
        are assigned the value 3, and at most 3 of them have been assigned the value 3
        '''
 
-    #Question 5 you have to complete the implementation of
-    #check() and hasSupport. You can change __init__ if you want
-    #but do not change its parameters.
+    # Question 5 you have to complete the implementation of
+    # check() and hasSupport. You can change __init__ if you want
+    # but do not change its parameters.
 
     def __init__(self, name, scope, required_value, lower_bound, upper_bound):
-        Constraint.__init__(self,name, scope)
+        Constraint.__init__(self, name, scope)
         self._name = "NValues_" + name
         self._required = required_value
         self._lb = lower_bound
         self._ub = upper_bound
 
+
+    def count_required(self):
+        return sum(
+            1 for var in self.scope()
+            if (var.getValue() == self._required)
+        )
+
     def check(self):
-        util.raiseNotDefined()
+        # Return whether the count is between the two bounds
+        return self._lb <= self.count_required() <= self._ub
 
     def hasSupport(self, var, val):
         '''check if var=val has an extension to an assignment of the
@@ -274,4 +325,19 @@ class NValuesConstraint(Constraint):
                  a similar approach is applicable here (but of course
                  there are other ways as well)
         '''
-        util.raiseNotDefined()
+
+        # We don't care about variables outside the constraint's scope
+        if var not in self.scope(): return True
+
+        def final_test(pairs):
+            num_reqs = sum(
+                1 for (variable, value)
+                in pairs
+                if (value == self._required)
+            )
+            return self._lb <= num_reqs <= self._ub
+
+        to_assign = self.scope()
+        to_assign.remove(var)
+
+        return findvals(to_assign, [(var, val)], final_test)
